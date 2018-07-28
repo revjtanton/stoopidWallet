@@ -2,7 +2,7 @@
   "name": "stoopidwallet",
   "version": "0.1.1",
   "description": "A lightweight multi-coin crypto wallet package.",
-  "main": "index.js",
+  "main": "./src/stoopidwallet.js",
   "homepage": "https://github.com/StoopidCompany/stoopidWallet",
   "keywords": [
     "cryptocurrency",
