@@ -5,15 +5,34 @@ var keys = require('./keys');
 var tx = require('./transaction');
 const COIN = 100000000; 
 
+/**
+ * Our Bitcoin functionality. 
+ */
 class BitcoinWallet {
+    /**
+     * Sets up our BlockCypher API
+     * 
+     * @todo replace BlockCypher with more options.
+     */
     constructor() {
         this.blockcypher = new BlockCypher();
     }
 
+    /**
+     * Gets the balance of an address.
+     * @param {String} addr - The address to lookup.
+     * @returns {Number} - The balance. 
+     */
     getBalance(addr) {
         return this.blockcypher.getBalance(addr);
     }
 
+    /**
+     * Creates or restores a wallet.
+     * @param {String} network - The network for the wallet.
+     * @param {Number} key - The private key for a wallet to restore.
+     * @returns {Object} - The active wallet object. 
+     */
     createWallet(network="mainnet", key=0) {
         if(key !== 0) {
             network = keys.getNetworkFromKey(key);
@@ -23,6 +42,13 @@ class BitcoinWallet {
         return keys.createWallet(network,key);
     }
 
+    /**
+     * Creates a transaction.
+     * @param {Number} amount - The amount to send.
+     * @param {String} toAddr - The address to send Bitcoin too.
+     * @param {Object} wallet - The full wallet object for the sending account.
+     * @returns {Promise<Number>} - The transaction hash.
+     */
     sendBitcoin(amount, toAddr, wallet) {
         amount = (amount * COIN)/1; 
 
@@ -35,7 +61,6 @@ class BitcoinWallet {
                 resolve(result);
             }).catch(err => reject(err));
         })
-
     }
 }
 

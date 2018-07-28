@@ -3,12 +3,26 @@
 var request = require('request');
 const COIN = 100000000;
 
+/**
+ * This connects to the BlockCypher API.
+ * We use this to get data about the Bitcoin network
+ * But also to transmit signed transactions.
+ * This works with either the mainnet or testnet.
+ */
 class BlockCypher {
+    /**
+    * Sets the api endpoint and network.
+    */
     constructor() {
         this.api = "https://api.blockcypher.com/v1/btc/";
         this.network = "main";
     }
 
+    /**
+     * Changes the active Bitcoin network. 
+     * Can be main or test3.
+     * @param {String} network - The network we're setting.
+     */
     changeNetwork(network) {
         if(network === "mainnet") {
             this.network = "main";
@@ -17,6 +31,9 @@ class BlockCypher {
         }
     }
 
+    /**
+     * Gets the last block from the blockchain.
+     */
     getLastBlockNumber() {
         var url = this.api + this.network;
 
@@ -28,6 +45,12 @@ class BlockCypher {
             })
         })
     }
+
+    /**
+     * Gets a block from the blockchain by its id.
+     * @param {Number} id - The block id.
+     * @returns {Promise<Object>} - The block object.
+     */
 
     getBlock(id) {
         var url = this.api + this.network + '/blocks/' + id;
@@ -45,6 +68,12 @@ class BlockCypher {
         })
     }
 
+    /**
+     * Gets the balance of an address instead of adding up UTXO's.
+     * @param {String} addr - The Bitcoin address.
+     * @returns {Promise<Object>} - The balance. 
+     */
+
     getBalance(addr) {
         var url = this.api + this.network + '/addrs/' + addr + '/balance';
 
@@ -56,6 +85,12 @@ class BlockCypher {
             })
         })
     }
+
+    /**
+     * Gets the UTXO's from an address.
+     * @param {String} addr - The Bitcoin address.
+     * @returns {Promise<Object>} - The UTXO set. 
+     */
 
     getUtxos(addr) {
         var url = this.api + this.network + '/addrs/' + addr + '?unspentOnly=true&includeScript=true';
@@ -88,6 +123,12 @@ class BlockCypher {
     //         })
     //     })
     // }
+
+    /**
+     * Broadcasts a new transaction to the Bitcoin network.
+     * @param {JSON} data - The signed and fully formed transaction.
+     * @returns {Promise<Object>} - The transaction hash returned from the network. 
+     */
 
     sendTx(data) {
         var url = this.api + this.network + '/txs/push';
