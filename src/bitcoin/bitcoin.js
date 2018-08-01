@@ -12,7 +12,7 @@ class BitcoinWallet {
     /**
      * Sets up our BlockCypher API
      * 
-     * @todo replace BlockCypher with more options.
+     * @todo replace BlockCypher with more options including our own hosted api.
      */
     constructor() {
         this.blockcypher = new BlockCypher();

@@ -1,6 +1,6 @@
 {
   "name": "stoopidwallet",
-  "version": "0.1.1",
+  "version": "0.0.1",
   "description": "A lightweight multi-coin crypto wallet package.",
   "main": "./src/stoopidwallet.js",
   "homepage": "https://github.com/StoopidCompany/stoopidWallet",

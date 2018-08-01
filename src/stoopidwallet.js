@@ -1,7 +1,10 @@
 'use strict';
 
 var BitcoinWallet = require("./bitcoin/bitcoin");
+var EthereumWallet = require("./ethereum/ethereum");
+
 var bitcoin = new BitcoinWallet();
+var ethereum = new EthereumWallet();
 
 /**
  * Connects our various coin protocols to deliver
@@ -51,6 +54,7 @@ class StoopidWallet {
      */
     getWallet() {
         if(this.crypto === 'bitcoin') return this.wallet.bitcoin;
+        if(this.crypto === 'ethereum') return this.wallet.ethereum;
     }
 
     /**
@@ -61,6 +65,11 @@ class StoopidWallet {
         return new Promise((resolve, reject) => {
             if(this.crypto === 'bitcoin') {
                 bitcoin.getBalance(this.wallet.bitcoin.address).then(function(bal) {
+                    resolve(bal);
+                })
+            }
+            if(this.crypto === 'ethereum') {
+                ethereum.getBalance(this.wallet.ethereum.address).then(function(bal) {
                     resolve(bal);
                 })
             }
@@ -75,6 +84,13 @@ class StoopidWallet {
      */
     createWallet(network='',key=0) {
         if(this.crypto === 'bitcoin') this.wallet.bitcoin = bitcoin.createWallet(network,key);
+        if(this.crypto === 'ethereum'){
+            if(key === 0) {
+                this.wallet.ethereum = ethereum.createWallet();
+            } else {
+                this.wallet.ethereum = ethereum.importWallet(key);
+            }
+        }
 
         return new Promise((resolve,reject) => {
             if(this.wallet === {}) reject("error, There is no wallet!");
@@ -94,6 +110,21 @@ class StoopidWallet {
             if(this.crypto === 'bitcoin') {
                 bitcoin.sendBitcoin(amount,toAddr,this.wallet.bitcoin).then(function(result) {
                     resolve(result);
+                })
+            }
+
+            /** @todo cleanup eth transaction calls */
+            if(this.crypto === 'ethereum') {
+                ethereum.createTransaction(toAddr,amount,this.wallet.ethereum).then(function(result) {
+                    return result;
+                }).then(function(transaction) {
+                    ethereum.sendTransaction(transaction.rawTransaction).then(function(res) {
+                        resolve(res);
+                    }).catch(function(err) {
+                        reject(err);
+                    })
+                }).catch(function(err) {
+                    reject(err);
                 })
             }
         })
