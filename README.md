@@ -9,7 +9,7 @@ A lightweight multi-coin crypto wallet package.
 This will eventually be an npm package.  It is not currently published.  It will be soon :)
 
 ### How do I use this?
-This assumes that you've been able to get this from npm....which you currently can't. If you know how to use npm then you'd know how to fork this and include `stoopidwallet.js` anyway, so let's just assume you've installed this from npm or can otherwise modify the instructions yourself.  That way I don't have to entirely re-write this later.
+For now you'll have to checkout the repo and then include it, so....
 
 First you're going to want to include the package and declare the class
 ```javascript
