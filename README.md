@@ -1,4 +1,5 @@
 <p align="center"><a href="https://kutt.it" title="kutt.it"><img src="https://stoopid.website/static/logo.67c58d89.png" alt="Stoopid Company"></a></p>
+
 # stoopidWallet
 A lightweight multi-coin crypto wallet package.
 
