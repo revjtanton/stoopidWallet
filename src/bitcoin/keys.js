@@ -22,12 +22,12 @@ function createKeyPair(key = 0) {
     return {private: privateKey, public: publicKey};
 }
 
-function generateAddr(publicKey, network="mainnet") {
+function generateAddr(publicKey, network="main") {
     var bytes = Buffer.from(publicKey, 'hex');
     var tmp = crypto.createHash('sha256').update(bytes).digest();
     var pubKeyHash = crypto.createHash('rmd160').update(tmp).digest();
 
-    var versionPrefix = (network === "testnet") ? "6f" : "00";
+    var versionPrefix = (network === "test3") ? "6f" : "00";
     var input = versionPrefix + pubKeyHash.toString('hex');
 
     bytes = Buffer.from(input, 'hex');
@@ -47,8 +47,8 @@ function getKeyHashFromAddr(addr) {
     return bytes.toString('hex');
 }
 
-function encodePrivKey(privateKey, network="mainnet") {
-    var prefix = (network === "testnet") ? "EF" : "80";
+function encodePrivKey(privateKey, network="main") {
+    var prefix = (network === "test3") ? "EF" : "80";
     var newKey = prefix + privateKey + "01";
 
     var bytes = Buffer.from(newKey, 'hex');
@@ -75,15 +75,15 @@ function getNetworkFromKey(key) {
         var first = key.charAt(0);
 
         if (first === 'K' || first === 'L') {
-            network = "mainnet";
+            network = "main";
         } else if (first === 'c') {
-            network = "testnet";
+            network = "test3";
         } 
     }
     return network;
 }
 
-function createWallet(network="mainnet", importKey=0) {
+function createWallet(network="main", importKey=0) {
     var keys = createKeyPair(importKey);
     var addr = generateAddr(keys.public, network);
 

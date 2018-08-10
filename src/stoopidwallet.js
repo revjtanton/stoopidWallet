@@ -15,16 +15,26 @@ var blockcypher = new BlockCypher();
 class StoopidWallet {
     /**
      * Creates the wallet and crypto globals.
-     * @param {String} api - The API we'll use. Defaults to blockcypher.
-     * @param {String} crypto - The coin we're using. Defaults to bitcoin.
+     * @param {String} [crypto = "bitcoin"] - The coin we're using.
+     * @param {String} [api = "blockcypher"] - The API we'll use.
+     * @param {String} [network = "main"] - This active network.
      */
-    constructor(api = "blockcypher",crypto = "bitcoin") {
+    constructor(crypto = "bitcoin",api = "blockcypher",network = "main") {
         this.wallet = {
             bitcoin: {},
             ethereum: {}
         };
+
         this.crypto = crypto;
-        if(api === "blockcypher") this.api = new BlockCypher();
+        if(api === "blockcypher") this.api = new BlockCypher(crypto,network);
+    }
+
+    /**
+     * Gets the active crypto or wallet type.
+     * @returns {String} - The active crypto being used. 
+     */
+    getCrypto() {
+        return this.crypto;
     }
 
     /**
@@ -39,11 +49,11 @@ class StoopidWallet {
     }
 
     /**
-     * Gets the active crypto or wallet type.
-     * @returns {String} - The active crypto being used. 
+     * Gets the active API.
+     * @returns {String} - The active API being used. 
      */
-    getCrypto() {
-        return this.crypto;
+    getApi() {
+        return this.api.name;
     }
 
     /**
@@ -58,11 +68,21 @@ class StoopidWallet {
     }
 
     /**
-     * Gets the active API.
-     * @returns {String} - The active API being used. 
+     * Gets the active network
+     * @returns {String} - The active network being used.
      */
-    getApi() {
-        return this.api.name;
+    getNetwork() {
+        return this.api.network;
+    }
+
+    /**
+     * Sets the active network for use.
+     * @param {String} network - The network we want to use.
+     * @returns {String} - The network that is currently active.
+     */
+    setNetwork(network) {
+        if(network === "beth") this.crypto = "ethereum";
+        return this.api.changeNetwork(network);
     }
 
     /**
@@ -95,6 +115,36 @@ class StoopidWallet {
     }
 
     /**
+     * Creates or re-creates a wallet for the active crypto and network.
+     * @param {String} key - The private key for an existing wallet.
+     * @returns {Promise<Object>} - The active wallet object. 
+     */
+    setWallet(key=0) {
+        // if(this.crypto === 'bitcoin') this.wallet.bitcoin = bitcoin.createWallet(network,key);
+        // if(this.crypto === 'ethereum'){
+        //     if(key === 0) {
+        //         this.wallet.ethereum = ethereum.createWallet();
+        //     } else {
+        //         this.wallet.ethereum = ethereum.importWallet(key);
+        //     }
+        // }
+        // return new Promise((resolve,reject) => {
+
+
+        //     if(this.wallet === {}) reject("error, There is no wallet!");
+
+        //     resolve(this.wallet);
+        // })
+        return new Promise((resolve,reject) => {
+            let wallet = this.api.setWallet(key);
+            if(this.crypto === "bitcoin") this.wallet.bitcoin = wallet;
+            if(this.crypto === "ethereum") this.wallet.ethereum = wallet;  
+            
+            resolve(this.wallet);
+        })
+    }
+
+    /**
      * Gets all available wallets and returns them.
      * @returns {Object} - The full wallet object. 
      */
@@ -116,40 +166,28 @@ class StoopidWallet {
      * @returns {Promise<Number>} - The balance of the active wallet 
      */
     getBalance() {
-        return new Promise((resolve, reject) => {
-            if(this.crypto === 'bitcoin') {
-                bitcoin.getBalance(this.wallet.bitcoin.address).then(function(bal) {
-                    resolve(bal);
-                })
-            }
-            if(this.crypto === 'ethereum') {
-                ethereum.getBalance(this.wallet.ethereum.address).then(function(bal) {
-                    resolve(bal);
-                })
-            }
-        })
-    }
-
-    /**
-     * Creates or re-creates a wallet for the active crypto
-     * @param {String} network - The network for the wallet. 
-     * @param {String} key - The private key for an existing wallet.
-     * @returns {Promise<Object>} - The active wallet object. 
-     */
-    createWallet(network='',key=0) {
-        if(this.crypto === 'bitcoin') this.wallet.bitcoin = bitcoin.createWallet(network,key);
-        if(this.crypto === 'ethereum'){
-            if(key === 0) {
-                this.wallet.ethereum = ethereum.createWallet();
-            } else {
-                this.wallet.ethereum = ethereum.importWallet(key);
-            }
+        let wallet = "";
+        if(this.crypto === "ethereum") {
+            wallet = this.wallet.ethereum;
+        } else {
+            wallet = this.wallet.bitcoin;
         }
-
-        return new Promise((resolve,reject) => {
-            if(this.wallet === {}) reject("error, There is no wallet!");
-
-            resolve(this.wallet);
+        return new Promise((resolve, reject) => {
+            // if(this.crypto === 'bitcoin') {
+            //     bitcoin.getBalance(this.wallet.bitcoin.address).then(function(bal) {
+            //         resolve(bal);
+            //     })
+            // }
+            // if(this.crypto === 'ethereum') {
+            //     ethereum.getBalance(this.wallet.ethereum.address).then(function(bal) {
+            //         resolve(bal);
+            //     })
+            // }
+            this.api.getBalance(wallet.address).then(function(bal) {
+                resolve(bal);
+            }).catch(function(err) {
+                reject(err);
+            })
         })
     }
 
