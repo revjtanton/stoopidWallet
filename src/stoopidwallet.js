@@ -1,10 +1,12 @@
 'use strict';
 
-var BitcoinWallet = require("./bitcoin/bitcoin");
-var EthereumWallet = require("./ethereum/ethereum");
+// var BitcoinWallet = require("./bitcoin/bitcoin");
+// var EthereumWallet = require("./ethereum/ethereum");
+var BlockCypher = require("./apis/blockcypher");
 
-var bitcoin = new BitcoinWallet();
-var ethereum = new EthereumWallet();
+// var bitcoin = new BitcoinWallet();
+// var ethereum = new EthereumWallet();
+var blockcypher = new BlockCypher();
 
 /**
  * Connects our various coin protocols to deliver
@@ -13,13 +15,16 @@ var ethereum = new EthereumWallet();
 class StoopidWallet {
     /**
      * Creates the wallet and crypto globals.
+     * @param {String} api - The API we'll use. Defaults to blockcypher.
+     * @param {String} crypto - The coin we're using. Defaults to bitcoin.
      */
-    constructor() {
+    constructor(api = "blockcypher",crypto = "bitcoin") {
         this.wallet = {
             bitcoin: {},
             ethereum: {}
         };
-        this.crypto = '';
+        this.crypto = crypto;
+        if(api === "blockcypher") this.api = new BlockCypher();
     }
 
     /**
@@ -29,6 +34,7 @@ class StoopidWallet {
      */
     setCrypto(crypto) {
         this.crypto = crypto;
+        this.api.crypto = crypto;
         return this.crypto;
     }
 
@@ -38,6 +44,54 @@ class StoopidWallet {
      */
     getCrypto() {
         return this.crypto;
+    }
+
+    /**
+     * Sets the active API for use.
+     * @param {String} api - The API we're interacting with.
+     * @returns {String} - Confirmation of the set API type. 
+     */
+    setApi(api) {
+        if(api === 'blockcypher') this.api = new BlockCypher(this.crypto);
+
+        return this.api.name;
+    }
+
+    /**
+     * Gets the active API.
+     * @returns {String} - The active API being used. 
+     */
+    getApi() {
+        return this.api.name;
+    }
+
+    /**
+     * Gets the latest block number for the set network
+     * @returns {Number} - The latest block number.
+     */
+    getLastBlockNumber() {
+        return new Promise((resolve,reject) => {
+            this.api.getLastBlockNumber().then(function(number) {
+                resolve(number);
+            }).catch(function(err) {
+                reject(err);
+            })
+        })
+    }
+
+    /**
+     * Gets a block object from the current network by block number
+     * @param {Number} - The block number
+     * @returns {Promise<Object>} - The block object
+     */
+    getBlock(number) {
+        return new Promise((resolve,reject) => {
+            this.api.getBlock(number).then(function(block) {
+                resolve(block);
+            }).catch(function(err) {
+                reject(err);
+            })
+        });
     }
 
     /**

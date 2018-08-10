@@ -1,7 +1,8 @@
 'use strict';
 
 var request = require('request');
-const COIN = 100000000;
+const BTC = 100000000;
+const ETH = 1000000000000000000;
 
 /**
  * This connects to the BlockCypher API.
@@ -12,10 +13,29 @@ const COIN = 100000000;
 class BlockCypher {
     /**
     * Sets the api endpoint and network.
+    * @param {String} [crypto = "bitcoin"] - The crypto we're interacting with.
     */
-    constructor() {
-        this.api = "https://api.blockcypher.com/v1/btc/";
+    constructor(crypto = "bitcoin") {
+        if(crypto === "bitcoin") this.api = "https://api.blockcypher.com/v1/btc/";
+        if(crypto === "ethereum") this.api = "https://api.blockcypher.com/v1/eth/";
+
+        this.name = "blockcypher";
         this.network = "main";
+        this.crypto = crypto;
+    }
+
+    /**
+     * Sets the active crypto for use.
+     * @param {String} crypto - The type of coin we're going to work.
+     * @returns {String} - Confirmation of the set crypto type. 
+     */
+    setCrypto(crypto) {
+        if(crypto === "bitcoin") this.api = "https://api.blockcypher.com/v1/btc/";
+        if(crypto === "ethereum") this.api = "https://api.blockcypher.com/v1/eth/";
+
+        this.network = "main";
+        this.crypto = crypto;
+        return this.crypto;
     }
 
     /**
@@ -28,11 +48,15 @@ class BlockCypher {
             this.network = "main";
         } else if (network === "testnet") {
             this.network = "test3";
+        } else if (network === "beth") {
+            this.api = "https://api.blockcypher.com/v1/beth/";
+            this.network = "test";
         }
     }
 
     /**
      * Gets the last block from the blockchain.
+     * @returns {Promise<Number>} - The latest block number for the set network.
      */
     getLastBlockNumber() {
         var url = this.api + this.network;
@@ -81,7 +105,8 @@ class BlockCypher {
             request(url, (err, res, body) => {
                 if (err) reject(err);
                 var result = JSON.parse(body);
-                resolve(result.balance / COIN);
+                if(this.crypto === "bitcoin") resolve(result.balance / BTC);
+                if(this.crypto === "ethereum") resolve(result.balance / ETH);
             })
         })
     }

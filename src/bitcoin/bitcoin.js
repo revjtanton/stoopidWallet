@@ -19,6 +19,14 @@ class BitcoinWallet {
     }
 
     /**
+     * Gets the latest block number.
+     * @return {Number} - The latest block number.
+     */
+    getLastBlockNumber() {
+        return this.blockcypher.getLastBlockNumber();
+    }
+
+    /**
      * Gets the balance of an address.
      * @param {String} addr - The address to lookup.
      * @returns {Number} - The balance. 
