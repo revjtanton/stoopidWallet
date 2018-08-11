@@ -3,16 +3,15 @@
 var Web3 = require('web3');
 const COIN = 1000000000000000000; 
 
-class Ethereum {
+class EthereumWallet {
     /**
      * Sets our web3 connection to ganache
      * 
      * @todo Offer other network connections and host our own master node.
      */
     constructor() {
-        this.web3 = new Web3("http://localhost:7545");
+        this.web3 = new Web3("ws://localhost:7545");
         this.network = 'ganache';
-        this.name = 'local';
     }
 
     /**
@@ -24,7 +23,7 @@ class Ethereum {
             this.web3.setProvider(window.web3.currentProvider);
         } else if (network === "ganache") {
             this.network = "ganache";
-            this.web3.setProvider(new Web3('http://localhost:7545'));
+            this.web3.setProvider(new Web3('ws://localhost:7545'));
         }
     }    
 
@@ -33,23 +32,9 @@ class Ethereum {
      * @returns {Object} - The full wallet object.
      */   
 
-    setWallet(key=0) {
-        return new Promise((resolve,reject) => {
-            let wallet = "";
-            if(key === 0) {
-                wallet = this.web3.eth.accounts.create('2435@#@#@±±±±!!!!678543213456764321§34567543213456785432134567');
-            } else {
-                if(key.charAt(0) !== '0' && key.charAt(1) !== 'x') key = `0x${key}`;
-                wallet = this.web3.eth.accounts.privateKeyToAccount(key);
-            }
-
-            var result = {
-                address: wallet.address,
-                privateKey: wallet.privateKey
-            }
-
-            resolve(result);
-        })
+    createWallet() {
+        var wallet = this.web3.eth.accounts.create('2435@#@#@±±±±!!!!678543213456764321§34567543213456785432134567');
+        return wallet;
     }
 
     /**
@@ -124,4 +109,4 @@ class Ethereum {
     }
 }
 
-module.exports = Ethereum;
+module.exports = EthereumWallet;

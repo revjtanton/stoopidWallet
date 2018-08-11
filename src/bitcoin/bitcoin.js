@@ -1,6 +1,6 @@
 'use strict';
 
-var BlockCypher = require("../apis/blockcypher");
+// var BlockCypher = require("../apis/blockcypher");
 var keys = require('./keys');
 var tx = require('./transaction');
 const COIN = 100000000; 
@@ -15,7 +15,15 @@ class BitcoinWallet {
      * @todo replace BlockCypher with more options including our own hosted api.
      */
     constructor() {
-        this.blockcypher = new BlockCypher();
+        // this.blockcypher = new BlockCypher();
+    }
+
+    /**
+     * Gets the latest block number.
+     * @return {Number} - The latest block number.
+     */
+    getLastBlockNumber() {
+        return this.blockcypher.getLastBlockNumber();
     }
 
     /**
@@ -33,11 +41,11 @@ class BitcoinWallet {
      * @param {Number} key - The private key for a wallet to restore.
      * @returns {Object} - The active wallet object. 
      */
-    createWallet(network="mainnet", key=0) {
-        if(key !== 0) {
-            network = keys.getNetworkFromKey(key);
-        }
-        this.blockcypher.changeNetwork(network);
+    createWallet(network="main", key=0) {
+        // if(key !== 0) {
+        //     network = keys.getNetworkFromKey(key);
+        // }
+        // this.blockcypher.changeNetwork(network);
 
         return keys.createWallet(network,key);
     }

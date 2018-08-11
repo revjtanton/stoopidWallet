@@ -1,10 +1,13 @@
 'use strict';
 
-var BitcoinWallet = require("./bitcoin/bitcoin");
-var EthereumWallet = require("./ethereum/ethereum");
+// var BitcoinWallet = require("./bitcoin/bitcoin");
+// var Ethereum = require("./ethereum/ethereum");
+var BlockCypher = require("./apis/blockcypher");
+var Ethereum = require("./ethereum/ethereum");
 
-var bitcoin = new BitcoinWallet();
-var ethereum = new EthereumWallet();
+// var bitcoin = new BitcoinWallet();
+// var ethereum = new EthereumWallet();
+var blockcypher = new BlockCypher();
 
 /**
  * Connects our various coin protocols to deliver
@@ -13,13 +16,31 @@ var ethereum = new EthereumWallet();
 class StoopidWallet {
     /**
      * Creates the wallet and crypto globals.
+     * @param {String} [crypto = "bitcoin"] - The coin we're using.
+     * @param {String} [api = "blockcypher"] - The API we'll use.
+     * @param {String} [network = "main"] - This active network.
      */
-    constructor() {
+    constructor(crypto = "bitcoin",api = "blockcypher",network = "main") {
         this.wallet = {
             bitcoin: {},
             ethereum: {}
         };
-        this.crypto = '';
+
+        this.crypto = crypto;
+        if(api === "blockcypher") this.api = new BlockCypher(crypto,network);
+        if(api === "local") {
+            if(crypto === "ethereum") {
+                this.api = new Ethereum();
+            }
+        }
+    }
+
+    /**
+     * Gets the active crypto or wallet type.
+     * @returns {String} - The active crypto being used. 
+     */
+    getCrypto() {
+        return this.crypto;
     }
 
     /**
@@ -29,15 +50,94 @@ class StoopidWallet {
      */
     setCrypto(crypto) {
         this.crypto = crypto;
+        this.api.crypto = crypto;
         return this.crypto;
     }
 
     /**
-     * Gets the active crypto or wallet type.
-     * @returns {String} - The active crypto being used. 
+     * Gets the active API.
+     * @returns {String} - The active API being used. 
      */
-    getCrypto() {
-        return this.crypto;
+    getApi() {
+        return this.api.name;
+    }
+
+    /**
+     * Sets the active API for use.
+     * @param {String} api - The API we're interacting with.
+     * @returns {String} - Confirmation of the set API type. 
+     */
+    setApi(api,network,token=0) {
+        if(api === 'blockcypher') this.api = new BlockCypher(this.crypto,network,token);
+        if(api === "local" && this.crypto === "ethereum") this.api = new Ethereum();
+
+        return this.api.name;
+    }
+
+    /**
+     * Gets the active network
+     * @returns {String} - The active network being used.
+     */
+    getNetwork() {
+        return this.api.network;
+    }
+
+    /**
+     * Sets the active network for use.
+     * @param {String} network - The network we want to use.
+     * @returns {String} - The network that is currently active.
+     */
+    setNetwork(network) {
+        if(network === "beth") this.crypto = "ethereum";
+        return this.api.changeNetwork(network);
+    }
+
+    /**
+     * Gets the latest block number for the set network
+     * @returns {Number} - The latest block number.
+     */
+    getLastBlockNumber() {
+        return new Promise((resolve,reject) => {
+            this.api.getLastBlockNumber().then(function(number) {
+                resolve(number);
+            }).catch(function(err) {
+                reject(err);
+            })
+        })
+    }
+
+    /**
+     * Gets a block object from the current network by block number
+     * @param {Number} - The block number
+     * @returns {Promise<Object>} - The block object
+     */
+    getBlock(number) {
+        return new Promise((resolve,reject) => {
+            this.api.getBlock(number).then(function(block) {
+                resolve(block);
+            }).catch(function(err) {
+                reject(err);
+            })
+        });
+    }
+
+    /**
+     * Creates or re-creates a wallet for the active crypto and network.
+     * @param {String} key - The private key for an existing wallet.
+     * @returns {Promise<Object>} - The active wallet object. 
+     */
+    setWallet(key=0) {
+        let sw = this;
+        return new Promise((resolve,reject) => {
+            sw.api.setWallet(key).then(function(result) {
+                if(sw.crypto === "bitcoin") sw.wallet.bitcoin = result;
+                if(sw.crypto === "ethereum") sw.wallet.ethereum = result;  
+                
+                resolve(sw.wallet);
+            }).catch(function(err) {
+                reject(err);
+            })
+        })
     }
 
     /**
@@ -62,40 +162,18 @@ class StoopidWallet {
      * @returns {Promise<Number>} - The balance of the active wallet 
      */
     getBalance() {
-        return new Promise((resolve, reject) => {
-            if(this.crypto === 'bitcoin') {
-                bitcoin.getBalance(this.wallet.bitcoin.address).then(function(bal) {
-                    resolve(bal);
-                })
-            }
-            if(this.crypto === 'ethereum') {
-                ethereum.getBalance(this.wallet.ethereum.address).then(function(bal) {
-                    resolve(bal);
-                })
-            }
-        })
-    }
-
-    /**
-     * Creates or re-creates a wallet for the active crypto
-     * @param {String} network - The network for the wallet. 
-     * @param {String} key - The private key for an existing wallet.
-     * @returns {Promise<Object>} - The active wallet object. 
-     */
-    createWallet(network='',key=0) {
-        if(this.crypto === 'bitcoin') this.wallet.bitcoin = bitcoin.createWallet(network,key);
-        if(this.crypto === 'ethereum'){
-            if(key === 0) {
-                this.wallet.ethereum = ethereum.createWallet();
-            } else {
-                this.wallet.ethereum = ethereum.importWallet(key);
-            }
+        let wallet = "";
+        if(this.crypto === "ethereum") {
+            wallet = this.wallet.ethereum;
+        } else {
+            wallet = this.wallet.bitcoin;
         }
-
-        return new Promise((resolve,reject) => {
-            if(this.wallet === {}) reject("error, There is no wallet!");
-
-            resolve(this.wallet);
+        return new Promise((resolve, reject) => {
+            this.api.getBalance(wallet.address).then(function(bal) {
+                resolve(bal);
+            }).catch(function(err) {
+                reject(err);
+            })
         })
     }
 
@@ -106,28 +184,28 @@ class StoopidWallet {
      * @returns {Promise<String>} - The transaction hash.
      */
     sendCoin(amount,toAddr) {
-        return new Promise((resolve, reject) => {
-            if(this.crypto === 'bitcoin') {
-                bitcoin.sendBitcoin(amount,toAddr,this.wallet.bitcoin).then(function(result) {
-                    resolve(result);
-                })
-            }
+        // return new Promise((resolve, reject) => {
+        //     if(this.crypto === 'bitcoin') {
+        //         bitcoin.sendBitcoin(amount,toAddr,this.wallet.bitcoin).then(function(result) {
+        //             resolve(result);
+        //         })
+        //     }
 
-            /** @todo cleanup eth transaction calls */
-            if(this.crypto === 'ethereum') {
-                ethereum.createTransaction(toAddr,amount,this.wallet.ethereum).then(function(result) {
-                    return result;
-                }).then(function(transaction) {
-                    ethereum.sendTransaction(transaction.rawTransaction).then(function(res) {
-                        resolve(res);
-                    }).catch(function(err) {
-                        reject(err);
-                    })
-                }).catch(function(err) {
-                    reject(err);
-                })
-            }
-        })
+        //     /** @todo cleanup eth transaction calls */
+        //     if(this.crypto === 'ethereum') {
+        //         ethereum.createTransaction(toAddr,amount,this.wallet.ethereum).then(function(result) {
+        //             return result;
+        //         }).then(function(transaction) {
+        //             ethereum.sendTransaction(transaction.rawTransaction).then(function(res) {
+        //                 resolve(res);
+        //             }).catch(function(err) {
+        //                 reject(err);
+        //             })
+        //         }).catch(function(err) {
+        //             reject(err);
+        //         })
+        //     }
+        // })
     }
 }
 

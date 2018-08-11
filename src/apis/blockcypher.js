@@ -1,7 +1,10 @@
 'use strict';
 
 var request = require('request');
-const COIN = 100000000;
+var Bitcoin = require('../bitcoin/bitcoin');
+var Ethereum = require('../ethereum/ethereum');
+const BTC = 100000000;
+const ETH = 1000000000000000000;
 
 /**
  * This connects to the BlockCypher API.
@@ -12,27 +15,73 @@ const COIN = 100000000;
 class BlockCypher {
     /**
     * Sets the api endpoint and network.
+    * @param {String} [crypto = "bitcoin"] - The crypto we're interacting with.
+    * @param {String} [network = "main"] - The network we're intereacting with.
     */
-    constructor() {
-        this.api = "https://api.blockcypher.com/v1/btc/";
-        this.network = "main";
+    constructor(crypto = "bitcoin",network = "main",token=0) {
+        this.bitcoin = new Bitcoin();
+        this.ethereum = new Ethereum();
+
+        if(crypto === "bitcoin") this.api = "https://api.blockcypher.com/v1/btc/";
+        if(crypto === "ethereum") this.api = "https://api.blockcypher.com/v1/eth/";
+        this.crypto = crypto;
+
+        if(network === "beth") {
+            this.api = "https://api.blockcypher.com/v1/beth/";
+            this.network = "test";
+        } else {   
+            this.network = network;
+        }
+
+        this.name = "blockcypher";
+        this.token = token;
+    }
+
+    /**
+     * Sets an API token for blockcypher
+     * @param {String} token - The API token.
+     * @returns {String} - The token.
+     */
+    setToken(token) {
+        this.token = token;
+        return this.token;
+    }
+
+    /**
+     * Sets the active crypto for use.
+     * @param {String} crypto - The type of coin we're going to work.
+     * @returns {String} - Confirmation of the set crypto type. 
+     */
+    setCrypto(crypto,network = "main") {
+        if(crypto === "bitcoin") this.api = "https://api.blockcypher.com/v1/btc/";
+        if(crypto === "ethereum") this.api = "https://api.blockcypher.com/v1/eth/";
+
+        this.crypto = crypto;
+        this.changeNetwork(network);
+
+        return this.crypto;
     }
 
     /**
      * Changes the active Bitcoin network. 
-     * Can be main or test3.
+     * Can be main, beth, or test3.
      * @param {String} network - The network we're setting.
      */
     changeNetwork(network) {
-        if(network === "mainnet") {
-            this.network = "main";
-        } else if (network === "testnet") {
-            this.network = "test3";
+        if(network === "beth") {
+            this.crypto = "ethereum";
+            this.api = "https://api.blockcypher.com/v1/beth/";
+            this.network = "test";
+        } else {
+            this.network = network;
         }
+
+        return this.network;
     }
 
     /**
      * Gets the last block from the blockchain.
+     * @returns {Promise<Number>} - The latest block number for the set network.
      */
     getLastBlockNumber() {
         var url = this.api + this.network;
@@ -51,7 +100,6 @@ class BlockCypher {
      * @param {Number} id - The block id.
      * @returns {Promise<Object>} - The block object.
      */
-
     getBlock(id) {
         var url = this.api + this.network + '/blocks/' + id;
 
@@ -67,7 +115,6 @@ class BlockCypher {
             })
         })
     }
-
     /**
      * Gets the balance of an address instead of adding up UTXO's.
      * @param {String} addr - The Bitcoin address.
@@ -81,8 +128,34 @@ class BlockCypher {
             request(url, (err, res, body) => {
                 if (err) reject(err);
                 var result = JSON.parse(body);
-                resolve(result.balance / COIN);
+                if(this.crypto === "bitcoin") resolve(result.balance / BTC);
+                if(this.crypto === "ethereum") resolve(result.balance / ETH);
             })
+        })
+    }
+
+    /**
+     * Creates or restores a wallet.
+     * @param {String} [key = 0] - The private key if we're restoring a wallet.
+     * @returns {Object} - The active wallet object. 
+     */
+    setWallet(key=0) {
+        return new Promise((resolve,reject) => {
+            if(this.crypto === "bitcoin") resolve(this.bitcoin.createWallet(this.network,key));
+    
+            /** @todo add more support for local and alternative ETH testnets. */
+            if(this.crypto === "ethereum") {
+                if(this.network === "test") {
+                    var url = this.api + this.network + '/addrs?token=' + this.token;
+                    request.post({url: url}, (err, res, body) => {
+                        if(err) reject(err);
+                        var data = JSON.parse(body);
+                        resolve(data);
+                    })
+                } else {
+                    resolve(this.ethereum.createWallet(key));
+                }
+            }
         })
     }
 
@@ -91,7 +164,6 @@ class BlockCypher {
      * @param {String} addr - The Bitcoin address.
      * @returns {Promise<Object>} - The UTXO set. 
      */
-
     getUtxos(addr) {
         var url = this.api + this.network + '/addrs/' + addr + '?unspentOnly=true&includeScript=true';
 
@@ -129,7 +201,6 @@ class BlockCypher {
      * @param {JSON} data - The signed and fully formed transaction.
      * @returns {Promise<Object>} - The transaction hash returned from the network. 
      */
-
     sendTx(data) {
         var url = this.api + this.network + '/txs/push';
         var payload = {tx: data};
