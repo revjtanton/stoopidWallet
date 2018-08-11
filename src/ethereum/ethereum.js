@@ -1,74 +1,127 @@
 'use strict';
 
-var BlockCypher = require("../apis/blockcypher");
-var tx = require('./transaction');
+var Web3 = require('web3');
 const COIN = 1000000000000000000; 
 
-/**
- * Our Ethereum functionality. 
- */
-class EthereumWallet {
+class Ethereum {
     /**
-     * Sets up our BlockCypher API
+     * Sets our web3 connection to ganache
      * 
-     * @todo replace BlockCypher with more options including our own hosted api.
+     * @todo Offer other network connections and host our own master node.
      */
     constructor() {
-        this.blockcypher = new BlockCypher();
+        this.web3 = new Web3("http://localhost:7545");
+        this.network = 'ganache';
+        this.name = 'local';
     }
 
     /**
-     * Gets the latest block number.
-     * @return {Number} - The latest block number.
+     * Sets the active web3 connection
+     * @param {String} network - The type of connection.
      */
-    getLastBlockNumber() {
-        return this.blockcypher.getLastBlockNumber();
+    changeNetwork(network) {
+        if(network === "metamask") {
+            this.web3.setProvider(window.web3.currentProvider);
+        } else if (network === "ganache") {
+            this.network = "ganache";
+            this.web3.setProvider(new Web3('http://localhost:7545'));
+        }
+    }    
+
+    /**
+     * Sets the active crypto for use.
+     * @returns {Object} - The full wallet object.
+     */   
+
+    setWallet(key=0) {
+        return new Promise((resolve,reject) => {
+            let wallet = "";
+            if(key === 0) {
+                wallet = this.web3.eth.accounts.create('2435@#@#@±±±±!!!!678543213456764321§34567543213456785432134567');
+            } else {
+                if(key.charAt(0) !== '0' && key.charAt(1) !== 'x') key = `0x${key}`;
+                wallet = this.web3.eth.accounts.privateKeyToAccount(key);
+            }
+
+            var result = {
+                address: wallet.address,
+                privateKey: wallet.privateKey
+            }
+
+            resolve(result);
+        })
+    }
+
+    /**
+     * Imports an existing wallet from the private key.
+     * @param {String} privateKey - The private key we're restoring.
+     * @returns {Object} - The full wallet object.
+     */
+    importWallet(privateKey) {
+        return this.web3.eth.accounts.privateKeyToAccount(privateKey);
+    }
+
+    /**
+     * Gets the number of transactions based on address.
+     * @param {String} addr - The address to query.
+     * @returns {Number} - The number of transactions.
+     */
+    getTransactionCount(addr) {
+        return this.web3.eth.getTransactionCount(addr);
     }
 
     /**
      * Gets the balance of an address.
-     * @param {String} addr - The address to lookup.
-     * @returns {Number} - The balance. 
+     * @param {String} addr - The address to query.
+     * @returns {Promise<Number>} - The address balance. 
      */
     getBalance(addr) {
-        return this.blockcypher.getBalance(addr);
+        return new Promise((resolve, reject) => {
+            this.web3.eth.getBalance(addr, function (err, result) {
+                if (err) reject(err);
+                resolve(result / COIN);
+            })
+        })
     }
 
     /**
-     * Creates or restores a wallet.
-     * @param {String} network - The network for the wallet.
-     * @param {Number} key - The private key for a wallet to restore.
-     * @returns {Object} - The active wallet object. 
+     * Creates and signs a new transaction.
+     * @param {String} toAddr - The recipient address
+     * @param {Number} val - The amount of ETH.
+     * @param {Object} wallet - The full wallet object.
+     * @returns {Promise<Object>} - Confirmation of the set crypto type. 
      */
-    createWallet(network="eth", key=0) {
-        // if(key !== 0) {
-        //     network = keys.getNetworkFromKey(key);
-        // }
-        // this.blockcypher.changeNetwork(network);
+    createTransaction(toAddr,val,wallet) {
+        /** @todo Come up with a better number to string conversion. */
+        var val = '' + val;
+        var tx = {
+            nonce: this.getTransactionCount(wallet.address),
+            to: toAddr,
+            value: this.web3.utils.toWei(val,'ether'),
+            gas: 2000000
+        }
 
-        // return keys.createWallet(network,key);
+        return new Promise((resolve, reject) => {
+            this.web3.eth.accounts.signTransaction(tx,wallet.privateKey, function(err, result) {
+                if (err) reject(err);
+                resolve(result);
+            })
+        })
     }
 
     /**
-     * Creates a transaction.
-     * @param {Number} amount - The amount to send.
-     * @param {String} toAddr - The address to send Ethereum too.
-     * @param {Object} wallet - The full wallet object for the sending account.
-     * @returns {Promise<Number>} - The transaction hash.
+     * Broadcasts a previously signed transaction to the blockchain.
+     * @param {String} data - The raw transaction data hash.
+     * @returns {String} - The transaction hash returned from the blockchain.
      */
-    sendEthereum(amount, toAddr, wallet) {
-    //     amount = (amount * COIN)/1; 
-
-    //     return new Promise((resolve, reject) => {
-    //         this.blockcypher.getUtxos(wallet.address).then(utxo => {
-    //             return tx.create(utxo, amount, toAddr, wallet);
-    //         }).then(tx => {
-    //             return this.blockcypher.sendTx(tx);
-    //         }).then(result => {
-    //             resolve(result);
-    //         }).catch(err => reject(err));
-    //     })
+    sendTransaction(data) {
+        return new Promise((resolve, reject) => {
+            this.web3.eth.sendSignedTransaction(data, function (err, result) {
+                if(err) reject(err);
+                resolve(result);
+            })
+        })
     }
 }
 
-module.exports = EthereumWallet;
+module.exports = Ethereum;

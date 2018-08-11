@@ -2,6 +2,7 @@
 
 var request = require('request');
 var Bitcoin = require('../bitcoin/bitcoin');
+var Ethereum = require('../ethereum/ethereum');
 const BTC = 100000000;
 const ETH = 1000000000000000000;
 
@@ -17,8 +18,9 @@ class BlockCypher {
     * @param {String} [crypto = "bitcoin"] - The crypto we're interacting with.
     * @param {String} [network = "main"] - The network we're intereacting with.
     */
-    constructor(crypto = "bitcoin",network = "main") {
+    constructor(crypto = "bitcoin",network = "main",token=0) {
         this.bitcoin = new Bitcoin();
+        this.ethereum = new Ethereum();
 
         if(crypto === "bitcoin") this.api = "https://api.blockcypher.com/v1/btc/";
         if(crypto === "ethereum") this.api = "https://api.blockcypher.com/v1/eth/";
@@ -32,6 +34,17 @@ class BlockCypher {
         }
 
         this.name = "blockcypher";
+        this.token = token;
+    }
+
+    /**
+     * Sets an API token for blockcypher
+     * @param {String} token - The API token.
+     * @returns {String} - The token.
+     */
+    setToken(token) {
+        this.token = token;
+        return this.token;
     }
 
     /**
@@ -126,11 +139,24 @@ class BlockCypher {
      * @param {String} [key = 0] - The private key if we're restoring a wallet.
      * @returns {Object} - The active wallet object. 
      */
-    setWallet(key = 0) {
-        let wallet = "";
-        if(this.crypto === "bitcoin") wallet = this.bitcoin.createWallet(this.network,key);
-
-        return wallet;
+    setWallet(key=0) {
+        return new Promise((resolve,reject) => {
+            if(this.crypto === "bitcoin") resolve(this.bitcoin.createWallet(this.network,key));
+    
+            /** @todo add more support for local and alternative ETH testnets. */
+            if(this.crypto === "ethereum") {
+                if(this.network === "test") {
+                    var url = this.api + this.network + '/addrs?token=' + this.token;
+                    request.post({url: url}, (err, res, body) => {
+                        if(err) reject(err);
+                        var data = JSON.parse(body);
+                        resolve(data);
+                    })
+                } else {
+                    resolve(this.ethereum.createWallet(key));
+                }
+            }
+        })
     }
 
     /**

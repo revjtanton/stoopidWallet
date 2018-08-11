@@ -95,6 +95,7 @@ describe("Bitcoin",() => {
 
     test("gets testnet wallet",() => {
         let wallet = stoopidwallet.getWallet();
+        console.log(wallet);
         expect(wallet).toHaveProperty('address');
     })
 
@@ -108,22 +109,34 @@ describe("Bitcoin",() => {
 
 /**
  * Ethereum tests
+ * @todo find another API to replace BlockCypher for ETH testnet. BETH sucks.
+ * Can't push local ganache tests to Travis.
  */
 // describe("Etherem",() => {
 //     beforeEach(() => {
-//         stoopidwallet.setCrypto('ethereum');
+//         stoopidwallet.setCrypto("ethereum");
+//         stoopidwallet.setApi("blockcypher");
+//         stoopidwallet.setNetwork("beth");
 //     });
 
-//     test("gets the latest block number", () => {
-//         stoopidwallet.getLastBlockNumber().then(function(number) {
-//             expect(number).toBeGreaterThan(0);
+//     test("sets testnet wallet", () => {
+//         stoopidwallet.setWallet().then(function(wallet) {
+//             expect(wallet.ethereum).toHaveProperty('address');
+//         }).catch(function(err) {
+//             console.log(err);
 //         })
 //     })
 
-//     test('sets beth testnet wallet', () => {
-//         let key = "";
-//         stoopidwallet.createWallet('',key).then(function(wallet) {
-//             expect(wallet.ethereum).toHaveProperty('address');
+//     test("gets testnet wallet",() => {
+//         let wallet = stoopidwallet.getWallet();
+//         console.log(wallet);
+//         expect(wallet).toHaveProperty('address');
+//     })
+
+//     test("gets testnet wallet balance", () => {
+//         let wallet = stoopidwallet.getWallet();
+//         stoopidwallet.getBalance(wallet.address).then(function(bal) {
+//             expect(bal).toBeGreaterThan(0);
 //         }).catch(function(err) {
 //             console.log(err);
 //         })

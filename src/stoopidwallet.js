@@ -1,8 +1,9 @@
 'use strict';
 
 // var BitcoinWallet = require("./bitcoin/bitcoin");
-// var EthereumWallet = require("./ethereum/ethereum");
+// var Ethereum = require("./ethereum/ethereum");
 var BlockCypher = require("./apis/blockcypher");
+var Ethereum = require("./ethereum/ethereum");
 
 // var bitcoin = new BitcoinWallet();
 // var ethereum = new EthereumWallet();
@@ -27,6 +28,11 @@ class StoopidWallet {
 
         this.crypto = crypto;
         if(api === "blockcypher") this.api = new BlockCypher(crypto,network);
+        if(api === "local") {
+            if(crypto === "ethereum") {
+                this.api = new Ethereum();
+            }
+        }
     }
 
     /**
@@ -61,8 +67,9 @@ class StoopidWallet {
      * @param {String} api - The API we're interacting with.
      * @returns {String} - Confirmation of the set API type. 
      */
-    setApi(api) {
-        if(api === 'blockcypher') this.api = new BlockCypher(this.crypto);
+    setApi(api,network,token=0) {
+        if(api === 'blockcypher') this.api = new BlockCypher(this.crypto,network,token);
+        if(api === "local" && this.crypto === "ethereum") this.api = new Ethereum();
 
         return this.api.name;
     }
@@ -120,27 +127,16 @@ class StoopidWallet {
      * @returns {Promise<Object>} - The active wallet object. 
      */
     setWallet(key=0) {
-        // if(this.crypto === 'bitcoin') this.wallet.bitcoin = bitcoin.createWallet(network,key);
-        // if(this.crypto === 'ethereum'){
-        //     if(key === 0) {
-        //         this.wallet.ethereum = ethereum.createWallet();
-        //     } else {
-        //         this.wallet.ethereum = ethereum.importWallet(key);
-        //     }
-        // }
-        // return new Promise((resolve,reject) => {
-
-
-        //     if(this.wallet === {}) reject("error, There is no wallet!");
-
-        //     resolve(this.wallet);
-        // })
+        let sw = this;
         return new Promise((resolve,reject) => {
-            let wallet = this.api.setWallet(key);
-            if(this.crypto === "bitcoin") this.wallet.bitcoin = wallet;
-            if(this.crypto === "ethereum") this.wallet.ethereum = wallet;  
-            
-            resolve(this.wallet);
+            sw.api.setWallet(key).then(function(result) {
+                if(sw.crypto === "bitcoin") sw.wallet.bitcoin = result;
+                if(sw.crypto === "ethereum") sw.wallet.ethereum = result;  
+                
+                resolve(sw.wallet);
+            }).catch(function(err) {
+                reject(err);
+            })
         })
     }
 
@@ -173,16 +169,6 @@ class StoopidWallet {
             wallet = this.wallet.bitcoin;
         }
         return new Promise((resolve, reject) => {
-            // if(this.crypto === 'bitcoin') {
-            //     bitcoin.getBalance(this.wallet.bitcoin.address).then(function(bal) {
-            //         resolve(bal);
-            //     })
-            // }
-            // if(this.crypto === 'ethereum') {
-            //     ethereum.getBalance(this.wallet.ethereum.address).then(function(bal) {
-            //         resolve(bal);
-            //     })
-            // }
             this.api.getBalance(wallet.address).then(function(bal) {
                 resolve(bal);
             }).catch(function(err) {
@@ -198,28 +184,28 @@ class StoopidWallet {
      * @returns {Promise<String>} - The transaction hash.
      */
     sendCoin(amount,toAddr) {
-        return new Promise((resolve, reject) => {
-            if(this.crypto === 'bitcoin') {
-                bitcoin.sendBitcoin(amount,toAddr,this.wallet.bitcoin).then(function(result) {
-                    resolve(result);
-                })
-            }
+        // return new Promise((resolve, reject) => {
+        //     if(this.crypto === 'bitcoin') {
+        //         bitcoin.sendBitcoin(amount,toAddr,this.wallet.bitcoin).then(function(result) {
+        //             resolve(result);
+        //         })
+        //     }
 
-            /** @todo cleanup eth transaction calls */
-            if(this.crypto === 'ethereum') {
-                ethereum.createTransaction(toAddr,amount,this.wallet.ethereum).then(function(result) {
-                    return result;
-                }).then(function(transaction) {
-                    ethereum.sendTransaction(transaction.rawTransaction).then(function(res) {
-                        resolve(res);
-                    }).catch(function(err) {
-                        reject(err);
-                    })
-                }).catch(function(err) {
-                    reject(err);
-                })
-            }
-        })
+        //     /** @todo cleanup eth transaction calls */
+        //     if(this.crypto === 'ethereum') {
+        //         ethereum.createTransaction(toAddr,amount,this.wallet.ethereum).then(function(result) {
+        //             return result;
+        //         }).then(function(transaction) {
+        //             ethereum.sendTransaction(transaction.rawTransaction).then(function(res) {
+        //                 resolve(res);
+        //             }).catch(function(err) {
+        //                 reject(err);
+        //             })
+        //         }).catch(function(err) {
+        //             reject(err);
+        //         })
+        //     }
+        // })
     }
 }
 
